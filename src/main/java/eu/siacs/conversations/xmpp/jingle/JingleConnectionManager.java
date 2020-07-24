@@ -536,7 +536,7 @@ public class JingleConnectionManager extends AbstractConnectionManager {
         return id.sessionId;
     }
 
-    public void proposeJingleRtpSession(final Account account, final Jid with, final Set<Media> media) {
+    public String proposeJingleRtpSession(final Account account, final Jid with, final Set<Media> media) {
         synchronized (this.rtpSessionProposals) {
             for (Map.Entry<RtpSessionProposal, DeviceDiscoveryState> entry : this.rtpSessionProposals.entrySet()) {
                 RtpSessionProposal proposal = entry.getKey();
@@ -551,14 +551,14 @@ public class JingleConnectionManager extends AbstractConnectionManager {
                                 proposal.sessionId,
                                 endUserState
                         );
-                        return;
+                        return proposal.sessionId;
                     }
                 }
             }
             if (isBusy()) {
                 if (hasMatchingRtpSession(account, with, media)) {
                     Log.d(Config.LOGTAG, "ignoring request to propose jingle session because the other party already created one for us");
-                    return;
+                    return null;
                 }
                 throw new IllegalStateException("There is already a running RTP session. This should have been caught by the UI");
             }
@@ -573,6 +573,19 @@ public class JingleConnectionManager extends AbstractConnectionManager {
             final MessagePacket messagePacket = mXmppConnectionService.getMessageGenerator().sessionProposal(proposal);
             Log.d(Config.LOGTAG, messagePacket.toString());
             mXmppConnectionService.sendMessagePacket(account, messagePacket);
+
+//            final RtpSessionProposal proposal1 = RtpSessionProposal.of(account, Jid.of("userselva3@chat.joiint.com"), media);
+//            this.rtpSessionProposals.put(proposal1, DeviceDiscoveryState.SEARCHING);
+//            mXmppConnectionService.notifyJingleRtpConnectionUpdate(
+//                    account,
+//                    proposal1.with,
+//                    proposal.sessionId,
+//                    RtpEndUserState.FINDING_DEVICE
+//            );
+//            final MessagePacket messagePacket1 = mXmppConnectionService.getMessageGenerator().sessionProposal(proposal1);
+//            Log.d(Config.LOGTAG, messagePacket1.toString());
+//            mXmppConnectionService.sendMessagePacket(account, messagePacket1);
+            return proposal.sessionId;
         }
     }
 

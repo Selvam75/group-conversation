@@ -85,10 +85,13 @@ public class WebRTCWrapper {
             eventCallback.onAudioDeviceChanged(selectedAudioDevice, availableAudioDevices);
         }
     };
+    private static final int MAX_CONNECTIONS = 3;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private VideoTrack localVideoTrack = null;
-    private VideoTrack remoteVideoTrack = null;
-    private final PeerConnection.Observer peerConnectionObserver = new PeerConnection.Observer() {
+    private VideoTrack[] remoteVideoTrack  = new VideoTrack[MAX_CONNECTIONS];
+    private final PCObserver[] peerConnectionObserver = new PCObserver[MAX_CONNECTIONS];
+    private PeerConnection[] peerConnections = new PeerConnection[MAX_CONNECTIONS];
+    private class PCObserver implements PeerConnection.Observer {
         @Override
         public void onSignalingChange(PeerConnection.SignalingState signalingState) {
             Log.d(EXTENDED_LOGGING_TAG, "onSignalingChange(" + signalingState + ")");
@@ -138,8 +141,8 @@ public class WebRTCWrapper {
             Log.d(EXTENDED_LOGGING_TAG, "onAddStream(numAudioTracks=" + mediaStream.audioTracks.size() + ",numVideoTracks=" + mediaStream.videoTracks.size() + ")");
             final List<VideoTrack> videoTracks = mediaStream.videoTracks;
             if (videoTracks.size() > 0) {
-                remoteVideoTrack = videoTracks.get(0);
-                Log.d(Config.LOGTAG, "remote video track enabled?=" + remoteVideoTrack.enabled());
+                remoteVideoTrack[0] = videoTracks.get(0);
+                Log.d(Config.LOGTAG, "remote video track enabled?=" + remoteVideoTrack[0].enabled());
             } else {
                 Log.d(Config.LOGTAG, "no remote video tracks found");
             }
@@ -170,9 +173,9 @@ public class WebRTCWrapper {
         public void onTrack(RtpTransceiver transceiver) {
             Log.d(EXTENDED_LOGGING_TAG, "onTrack(mid=" + transceiver.getMid() + ",media=" + transceiver.getMediaType() + ")");
         }
-    };
-    @Nullable
-    private PeerConnection peerConnection = null;
+    }
+
+
     private AudioTrack localAudioTrack = null;
     private AppRTCAudioManager appRTCAudioManager = null;
     private ToneManager toneManager = null;
@@ -182,6 +185,7 @@ public class WebRTCWrapper {
 
     WebRTCWrapper(final EventCallback eventCallback) {
         this.eventCallback = eventCallback;
+        peerConnections[0] = null;
     }
 
     private static void dispose(final PeerConnection peerConnection) {
@@ -277,24 +281,24 @@ public class WebRTCWrapper {
         final PeerConnection.RTCConfiguration rtcConfig = new PeerConnection.RTCConfiguration(iceServers);
         rtcConfig.tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.DISABLED; //XEP-0176 doesn't support tcp
         rtcConfig.continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY;
-        final PeerConnection peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, peerConnectionObserver);
-        if (peerConnection == null) {
+
+        peerConnections[0] = peerConnectionFactory.createPeerConnection(rtcConfig, peerConnectionObserver[0]);
+        if (peerConnections[0] == null) {
             throw new InitializationException("Unable to create PeerConnection");
         }
-        peerConnection.addStream(stream);
-        peerConnection.setAudioPlayout(true);
-        peerConnection.setAudioRecording(true);
-        this.peerConnection = peerConnection;
+        peerConnections[0].addStream(stream);
+        peerConnections[0].setAudioPlayout(true);
+        peerConnections[0].setAudioRecording(true);
     }
 
     synchronized void close() {
-        final PeerConnection peerConnection = this.peerConnection;
+        final PeerConnection peerConnection = this.peerConnections[0];
         final CapturerChoice capturerChoice = this.capturerChoice;
         final AppRTCAudioManager audioManager = this.appRTCAudioManager;
         final EglBase eglBase = this.eglBase;
         if (peerConnection != null) {
             dispose(peerConnection);
-            this.peerConnection = null;
+            this.peerConnections[0] = null;
         }
         if (audioManager != null) {
             toneManager.setAppRtcAudioManagerHasControl(false);
@@ -316,7 +320,7 @@ public class WebRTCWrapper {
     }
 
     synchronized void verifyClosed() {
-        if (this.peerConnection != null
+        if (this.peerConnections[0] != null
                 || this.eglBase != null
                 || this.localVideoTrack != null
                 || this.remoteVideoTrack != null) {
@@ -485,7 +489,7 @@ public class WebRTCWrapper {
 
     @Nonnull
     private ListenableFuture<PeerConnection> getPeerConnectionFuture() {
-        final PeerConnection peerConnection = this.peerConnection;
+        final PeerConnection peerConnection = this.peerConnections[0];
         if (peerConnection == null) {
             return Futures.immediateFailedFuture(new IllegalStateException("initialize PeerConnection first"));
         } else {
@@ -538,6 +542,9 @@ public class WebRTCWrapper {
     }
 
     EglBase.Context getEglBaseContext() {
+        if(eglBase==null){
+            eglBase = EglBase.create();
+        }
         return this.eglBase.getEglBaseContext();
     }
 
@@ -545,12 +552,12 @@ public class WebRTCWrapper {
         return Optional.fromNullable(this.localVideoTrack);
     }
 
-    Optional<VideoTrack> getRemoteVideoTrack() {
+    Optional<VideoTrack[]> getRemoteVideoTrack() {
         return Optional.fromNullable(this.remoteVideoTrack);
     }
 
     private PeerConnection requirePeerConnection() {
-        final PeerConnection peerConnection = this.peerConnection;
+        final PeerConnection peerConnection = this.peerConnections[0];
         if (peerConnection == null) {
             throw new IllegalStateException("initialize PeerConnection first");
         }

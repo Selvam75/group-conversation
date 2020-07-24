@@ -13,7 +13,6 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import org.webrtc.EglBase;
@@ -1192,8 +1191,8 @@ public class JingleRtpConnection extends AbstractJingleConnection implements Web
          listBuilder.add(iceServer2);
      }*/
         {
-            String turnSErver  = sharedpreferences.getString("turn","chat.joiint.com");
-            String sturnSErver  = sharedpreferences.getString("sturn","chat.joiint.com");
+            String turnSErver  = sharedpreferences.getString("turn","stun.joiint.com");
+            String sturnSErver  = sharedpreferences.getString("sturn","stun.joiint.com");
             String port = sharedpreferences.getString("port","80");
             String username  = sharedpreferences.getString("username","joiint");
             String password = sharedpreferences.getString("password","joiint123##");
@@ -1221,8 +1220,8 @@ public class JingleRtpConnection extends AbstractJingleConnection implements Web
              * turn server
              *
              */
-            String turnSErver  = sharedpreferences.getString("turn","chat.joiint.com");
-            String sturnSErver  = sharedpreferences.getString("sturn","chat.joiint.com");
+            String turnSErver  = sharedpreferences.getString("turn","stun.joiint.com");
+            String sturnSErver  = sharedpreferences.getString("sturn","stun.joiint.com");
             String port = sharedpreferences.getString("port","80");
             String username  = sharedpreferences.getString("username","joiint");
             String password = sharedpreferences.getString("password","joiint123##");
@@ -1529,7 +1528,7 @@ public class JingleRtpConnection extends AbstractJingleConnection implements Web
         return webRTCWrapper.getLocalVideoTrack();
     }
 
-    public Optional<VideoTrack> getRemoteVideoTrack() {
+    public Optional<VideoTrack[]> getRemoteVideoTrack() {
         return webRTCWrapper.getRemoteVideoTrack();
     }
 

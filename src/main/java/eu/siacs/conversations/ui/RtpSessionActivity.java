@@ -437,9 +437,9 @@ public class RtpSessionActivity extends XmppActivity implements XmppConnectionSe
     }
 
     private void releaseVideoTracks(final JingleRtpConnection jingleRtpConnection) {
-        final Optional<VideoTrack> remoteVideo = jingleRtpConnection.getRemoteVideoTrack();
-        if (remoteVideo.isPresent()) {
-            remoteVideo.get().removeSink(binding.remoteVideo);
+        final Optional<VideoTrack[]> remoteVideo = jingleRtpConnection.getRemoteVideoTrack();
+        if (remoteVideo.isPresent()&&remoteVideo.get().length>0) {
+            remoteVideo.get()[0].removeSink(binding.remoteVideo);
         }
         final Optional<VideoTrack> localVideo = jingleRtpConnection.getLocalVideoTrack();
         if (localVideo.isPresent()) {
@@ -899,10 +899,10 @@ public class RtpSessionActivity extends XmppActivity implements XmppConnectionSe
         } else {
             binding.localVideo.setVisibility(View.GONE);
         }
-        final Optional<VideoTrack> remoteVideoTrack = getRemoteVideoTrack();
+        final Optional<VideoTrack[]> remoteVideoTrack = getRemoteVideoTrack();
         if (remoteVideoTrack.isPresent()) {
             ensureSurfaceViewRendererIsSetup(binding.remoteVideo);
-            addSink(remoteVideoTrack.get(), binding.remoteVideo);
+            addSink(remoteVideoTrack.get()[0], binding.remoteVideo);
             if (state == RtpEndUserState.CONNECTED) {
                 binding.appBarLayout.setVisibility(View.GONE);
                 getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
@@ -930,7 +930,7 @@ public class RtpSessionActivity extends XmppActivity implements XmppConnectionSe
         return connection.getLocalVideoTrack();
     }
 
-    private Optional<VideoTrack> getRemoteVideoTrack() {
+    private Optional<VideoTrack[]> getRemoteVideoTrack() {
         final JingleRtpConnection connection = this.rtpConnectionReference != null ? this.rtpConnectionReference.get() : null;
         if (connection == null) {
             return Optional.absent();
