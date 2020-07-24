@@ -573,6 +573,18 @@ public class JingleConnectionManager extends AbstractConnectionManager {
             final MessagePacket messagePacket = mXmppConnectionService.getMessageGenerator().sessionProposal(proposal);
             Log.d(Config.LOGTAG, messagePacket.toString());
             mXmppConnectionService.sendMessagePacket(account, messagePacket);
+
+            final RtpSessionProposal proposal1 = RtpSessionProposal.of(account, Jid.of("userselva3@chat.joiint.com"), media);
+            this.rtpSessionProposals.put(proposal1, DeviceDiscoveryState.SEARCHING);
+            mXmppConnectionService.notifyJingleRtpConnectionUpdate(
+                    account,
+                    proposal1.with,
+                    proposal.sessionId,
+                    RtpEndUserState.FINDING_DEVICE
+            );
+            final MessagePacket messagePacket1 = mXmppConnectionService.getMessageGenerator().sessionProposal(proposal1);
+            Log.d(Config.LOGTAG, messagePacket1.toString());
+            mXmppConnectionService.sendMessagePacket(account, messagePacket1);
         }
     }
 
